@@ -27,7 +27,7 @@
 #define LORA_DIO0    26
 
 #define PIN_OUT_LEFT    25
-#define PIN_OUT_RIGHT   26
+#define PIN_OUT_RIGHT   27
 #define PWM_FREQ        5000      // 5 kHz PWM is a safe, inaudible choice
 #define PWM_RES_BITS    8         // 8-bit (0..255) duty range
 
@@ -79,18 +79,23 @@ void setup() {
 
   Serial.println("LoRa initialization success!");
 
-  // Keep PHY settings aligned with the transmitter
-  LoRa.setSpreadingFactor(7);
-  LoRa.setSignalBandwidth(125E3);
-  LoRa.setCodingRate4(5);
-  LoRa.enableCrc();
-  LoRa.setSyncWord(0x12);
+  //=============================
+  // NOTE: Keep these settings aligned with the transmitter
+  //=============================
+  LoRa.setSpreadingFactor(7);         // lower latency, reasonable range
+  LoRa.setSignalBandwidth(125E3);     // 125 kHz is a common default
+  LoRa.setCodingRate4(5);             // 4/5: moderate robustness
+  LoRa.enableCrc();                   // PHY CRC in addition to our payload CRC
+  LoRa.setSyncWord(0x12);             // change to isolate from other nodes
+  //=============================
 }
 
 void loop() {
   // parsePacket() > 0 means a packet is available; value is its length in bytes
   const int packetLength = LoRa.parsePacket();
   const uint32_t nowMillis = millis();
+
+  Serial.printf("RSSI: %d dBm | SNR: %.1f dB - ", LoRa.packetRssi(), LoRa.packetSnr());
 
   // Accept only the expected fixed-size packet (8 bytes)
   if (packetLength == 8) {
@@ -106,7 +111,7 @@ void loop() {
 
     const bool isPacketValid    = hasValidMagic && hasValidVersion && hasValidCrc;
 
-    Serial.println("Packet valid -> " + isPacketValid);
+    Serial.printf("Packet valid -> %s\n", isPacketValid ? "true" : "false");
 
     if (isPacketValid) {
       // Sequence [3..4] available if you want ordering/stats
@@ -119,13 +124,16 @@ void loop() {
 
       // refresh fail-safe timer
       lastValidPacketMillis = nowMillis;           
+    } else {
+      Serial.println("Invalid packet received!");
     }
+  } else {
+    Serial.printf("Packet length: %d\n", packetLength);
   }
 
   // Fail-safe: zero the outputs if packets stop arriving
   if (nowMillis - lastValidPacketMillis > FAILSAFE_TIMEOUT_MS) {
+    Serial.println("Fail-safe");
     setOutputs(0, 0);
   }
-
-  delay(500);
 }

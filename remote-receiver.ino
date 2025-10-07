@@ -73,7 +73,7 @@ void setup() {
   LoRa.setPins(LORA_CS, LORA_RST, LORA_DIO0);
 
   if (!LoRa.begin((long)LORA_FREQ_HZ)) {
-    Serial.println("LoRa module initialization error!")
+    Serial.println("LoRa module initialization error!");
     while (true);
   }
 

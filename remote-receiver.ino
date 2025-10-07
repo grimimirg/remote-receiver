@@ -3,7 +3,7 @@
 #include <LoRa.h>
 
 /*
-  Remote Receiver (ESP32 + SX127x, 433 MHz) — ESP32 core v3.x API only
+  Remote Receiver (ESP32 + SX127x, 868 MHz) — ESP32 core v3.x API only
 
   - Listens for 8-byte LoRa control packets and drives two PWM outputs.
   - New LEDC API (v3.x): ledcAttach(pin, freq, res) + ledcWrite(pin, duty).
@@ -18,7 +18,7 @@
 */
 
 // ==== Pin configuration ====
-#define LORA_FREQ_HZ 433E6
+#define LORA_FREQ_HZ 868E6
 #define LORA_SCK     18
 #define LORA_MISO    19
 #define LORA_MOSI    23
@@ -73,7 +73,7 @@ void setup() {
   LoRa.setPins(LORA_CS, LORA_RST, LORA_DIO0);
 
   if (!LoRa.begin((long)LORA_FREQ_HZ)) {
-    Serial.println("LoRa initialization failed!");
+    Serial.println("LoRa module initialization error!")
     while (true);
   }
 
@@ -127,8 +127,9 @@ void loop() {
     } else {
       Serial.println("Invalid packet received!");
     }
-  } else {
-    Serial.printf("Packet length: %d\n", packetLength);
+  } else if (packetLength > 0) {
+    Serial.printf("Unexpected packet of length: %d\n -> flushing the toilet! *SGUOSHHH*", packetLength);
+    while (LoRa.available()) LoRa.read();
   }
 
   // Fail-safe: zero the outputs if packets stop arriving

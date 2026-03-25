@@ -3,7 +3,7 @@
 #include <LoRa.h>
 
 /*
-  Remote Receiver (ESP32 + SX127x, 868 MHz) — ESP32 core v3.x API only
+  Remote Receiver (ESP32 + SX127x, 433 MHz) — ESP32 core v3.x API only
 
   - Listens for 8-byte LoRa control packets and drives two PWM outputs.
   - New LEDC API (v3.x): ledcAttach(pin, freq, res) + ledcWrite(pin, duty).
@@ -18,7 +18,7 @@
 */
 
 // ==== Pin configuration ====
-#define LORA_FREQ_HZ 868E6
+#define LORA_FREQ_HZ 433E6
 #define LORA_SCK     18
 #define LORA_MISO    19
 #define LORA_MOSI    23
@@ -27,7 +27,7 @@
 #define LORA_DIO0    26
 
 #define PIN_OUT_LEFT    25
-#define PIN_OUT_RIGHT   27
+#define PIN_OUT_RIGHT   26
 #define PWM_FREQ        5000      // 5 kHz PWM is a safe, inaudible choice
 #define PWM_RES_BITS    8         // 8-bit (0..255) duty range
 
@@ -95,7 +95,7 @@ void loop() {
   const int packetLength = LoRa.parsePacket();
   const uint32_t nowMillis = millis();
 
-  Serial.printf("RSSI: %d dBm | SNR: %.1f dB - ", LoRa.packetRssi(), LoRa.packetSnr());
+  bool packetReceived = false;
 
   // Accept only the expected fixed-size packet (8 bytes)
   if (packetLength == 8) {
@@ -111,7 +111,9 @@ void loop() {
 
     const bool isPacketValid    = hasValidMagic && hasValidVersion && hasValidCrc;
 
+    Serial.printf("RSSI: %d dBm | SNR: %.1f dB - ", LoRa.packetRssi(), LoRa.packetSnr());
     Serial.printf("Packet valid -> %s\n", isPacketValid ? "true" : "false");
+    packetReceived = true;
 
     if (isPacketValid) {
       // Sequence [3..4] available if you want ordering/stats
@@ -128,13 +130,23 @@ void loop() {
       Serial.println("Invalid packet received!");
     }
   } else if (packetLength > 0) {
-    Serial.printf("Unexpected packet of length: %d\n -> flushing the toilet! *SGUOSHHH*", packetLength);
+    Serial.printf("Unexpected packet of length: %d - flushing!\n", packetLength);
     while (LoRa.available()) LoRa.read();
+    packetReceived = true;
   }
 
   // Fail-safe: zero the outputs if packets stop arriving
+  static bool failsafeActive = false;
   if (nowMillis - lastValidPacketMillis > FAILSAFE_TIMEOUT_MS) {
-    Serial.println("Fail-safe");
+    if (!failsafeActive) {
+      Serial.println("Fail-safe activated");
+      failsafeActive = true;
+    }
     setOutputs(0, 0);
+  } else {
+    if (failsafeActive) {
+      Serial.println("Fail-safe deactivated");
+      failsafeActive = false;
+    }
   }
 }

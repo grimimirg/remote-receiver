@@ -1,3 +1,17 @@
+> [!IMPORTANT]
+> ## This GitHub repository has reached its end of life
+>
+> Development has moved to my self-hosted Gitea instance, and further
+> improvements will only land there:
+>
+> ### 👉 https://git.grimilab.duckdns.org/andreagrimandi/remote-receiver
+>
+> This copy stays online for reference, but it is **no longer updated**, and
+> issues or pull requests opened here will not be picked up. Please switch to
+> the repository above to follow the project.
+
+---
+
 # Remote Receiver (ESP32 + LoRa)
 
 This firmware turns an ESP32 into a two-channel LoRa receiver. It listens for 8-byte packets sent by the controller and drives two PWM outputs accordingly. A simple fail-safe forces both outputs to zero if packets stop arriving.
